@@ -8,14 +8,14 @@ Discusses and reviews the fundamentals of software development and exploitation.
 - How to debug code with GBD
 - How to read low-level process layout in memory
 - Basic exploitation concepts:
-* Stack and Heap Buffer Overflows
-* Overwriting Function Pointers
-* Format String vulnerabilities 
+  * Stack and Heap Buffer Overflows
+  * Overwriting Function Pointers
+  * Format String vulnerabilities 
 - Basic networking concepts:
-* Programming C sockets
-* The TCP/IP Stack
+  * Programming C sockets
+  * The TCP/IP Stack
 - Writing basic shellcode:
-* Linux bind shell
-* Linux reverse shell
+  * Linux bind shell
+  * Linux reverse shell
 
 
