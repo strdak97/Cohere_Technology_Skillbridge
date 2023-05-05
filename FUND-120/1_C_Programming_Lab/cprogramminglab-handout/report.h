@@ -90,13 +90,13 @@ double gigabytes(size_t bytes);
 /** Counters giving peak memory usage **/
 
 /* Never resets */
-size_t peak_bytes;
+extern size_t peak_bytes;
 
 /* Resettable */
-size_t last_peak_bytes;
+extern size_t last_peak_bytes;
 
 /* Instantaneous */
-size_t current_bytes;
+extern size_t current_bytes;
 
 
 /* Reset last_peak_bytes */

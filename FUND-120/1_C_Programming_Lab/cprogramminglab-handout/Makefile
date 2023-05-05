@@ -13,7 +13,7 @@ qtest: qtest.c report.c console.c harness.c queue.o
 
 test: qtest driver.py
 	chmod +x driver.py
-	./driver.py
+	python2 ./driver.py
 
 clean:
 	rm -f *.o *~ qtest 
