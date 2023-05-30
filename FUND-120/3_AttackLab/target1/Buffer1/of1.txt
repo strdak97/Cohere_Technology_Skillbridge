@@ -1,0 +1,10 @@
+FF FF FF FF FF FF FF FF  /*  40 byte buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+c0 17 40 00 00 00 00 00  /*  touch1 address  */
+
+/*  bufsize = 40 bytes, so we fill the buffer with  */
+/*  40 bytes of garbage then the touch1 address is  */
+/*  returned instead  */
