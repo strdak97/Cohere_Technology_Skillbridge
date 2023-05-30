@@ -71,7 +71,7 @@ Disassembly of section .text:
   78:	48 89 e5             	mov    %rsp,%rbp
   7b:	48 89 7d f8          	mov    %rdi,-0x8(%rbp)
   7f:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
-  83:	c7 00 48 89 c7 90    	movl   $0x90c78948,(%rax) //second instruction??
+  83:	c7 00 48 89 c7 90    	movl   $0x90c78948,(%rax) 
   89:	90                   	nop
   8a:	5d                   	pop    %rbp
   8b:	c3                   	ret
@@ -79,7 +79,7 @@ Disassembly of section .text:
 000000000000008c <getval_280>:
   8c:	55                   	push   %rbp
   8d:	48 89 e5             	mov    %rsp,%rbp
-  90:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  //first instruction
+  90:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  
   95:	5d                   	pop    %rbp
   96:	c3                   	ret
 
@@ -89,13 +89,6 @@ Disassembly of section .text:
   9b:	b8 01 00 00 00       	mov    $0x1,%eax
   a0:	5d                   	pop    %rbp
   a1:	c3                   	ret
-
-
-
-// BELOW IS NOT NEEDED FOR PHASE 4 OF ATTACK LAB!!!!!!!//
-
-
-
 
 00000000000000a2 <add_xy>:
   a2:	55                   	push   %rbp
