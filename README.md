@@ -47,3 +47,12 @@ Builds on the concepts learned in FOUND-110 utilizing Carnegie Mellon University
     + Obtain a in-depth understanding of stack and parameter-passing mechanisms of x86-64 assembly language.
     + Garner extensive experience utilizing debugging tools such as GDB and OBJDUMP within UNIX operating systems.
    
+- Client-Server Lab
+  * This is a four-part lab in which the ultimate goal is to have students design and implement a multi-threaded web server as well as a multi-threaded client that acts as a load generator for the server.
+    + The first phase of the lab starts by having students implement a simple echo server and client, in which the server simply echoes (repeats back) the message that the client sends.
+    + The second phase of this lab expands on the echo lab by having the student implement a transfer server and lab that takes a single file request from the client and has the server provide it to be saved on disk. 
+    + The third phase of the lab has student practice creating library functions by having them create a custom library called GETFILE to add to their transfer server. 
+    + The fourth and final phase of the lab has student take everything learned up until this point and modify the GETFILE program to become utilize multi-threading capabilities along with mutex locks and conditionals.
+
+**TRACK-201**
+  
