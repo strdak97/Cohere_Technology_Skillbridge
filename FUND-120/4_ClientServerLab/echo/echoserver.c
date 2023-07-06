@@ -1,184 +1,153 @@
 #include <stdio.h>
-#include <getopt.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
 #include <netdb.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#if 0
-/*
- * Structs exported from netinet/in.h (for easy reference)
- */
-
-/* Internet address */
-struct in_addr {
-  unsigned int s_addr; 
-};
-
-/* Internet style socket address */
-struct sockaddr_in  {
-  unsigned short int sin_family; /* Address family */
-  unsigned short int sin_port;   /* Port number */
-  struct in_addr sin_addr;	 /* IP address */
-  unsigned char sin_zero[...];   /* Pad to size of 'struct sockaddr' */
-};
-
-/*
- * Struct exported from netdb.h
- */
-
-/* Domain name service (DNS) host entry */
-struct hostent {
-  char    *h_name;        /* official name of host */
-  char    **h_aliases;    /* alias list */
-  int     h_addrtype;     /* host address type */
-  int     h_length;       /* length of address */
-  char    **h_addr_list;  /* list of addresses */
-}
-#endif
-
 #define BUFSIZE 4096
+#define DEFAULT_PORT 8080
 
-#define USAGE                                                                 \
-"usage:\n"                                                                    \
-"  echoserver [options]\n"                                                    \
-"options:\n"                                                                  \
-"  -h                  Show this help message\n"                              \
-"  -n                  Maximum pending connections\n"                         \
-"  -p                  Port (Default: 8080)\n"
-
-/* OPTIONS DESCRIPTOR ====================================================== */
-static struct option gLongOptions[] = {
-        {"port",        required_argument, NULL, 'p'},
-        {"maxnpending", required_argument, NULL, 'n'},
-        {"help",        no_argument,       NULL, 'h'},
-        {NULL, 0,                          NULL, 0}
-};
-
-/*
- * error - wrapper for perror
- */
-void error(char *msg) {
-  perror(msg);
-  exit(1);
-}
+/* Function prototypes */
+void error(const char *msg);
+void parseCommandLineArgs(int argc, char **argv, int *port, int *maxPending);
+void setupSocket(int *listenfd, int port);
+void acceptConnections(int listenfd);
 
 int main(int argc, char **argv) {
-    int listenfd; /* listening socket */
-    int connfd; /* connection socket */
-    socklen_t clientlen; /* byte size of client's address */
-    struct sockaddr_in serveraddr; /* server's addr */
-    struct sockaddr_in clientaddr; /* client addr */
-    struct hostent *hostp; /* client host info */
-    char buf[BUFSIZE]; /* message buffer */
-    char *hostaddrp; /* dotted decimal host addr string */
-    int optval; /* flag value for setsockopt */
-    int n; /* message byte size */
-    /* provided variables below */
-    int option_char;
-    int portno = 8080; /* port to listen on */
-    int maxnpending = 5;
+    int listenfd;        // Listening socket
+    int port;            // Port to listen on
+    int maxPending = 5;  // Maximum pending connections
 
-    // Parse and set command line arguments
+    parseCommandLineArgs(argc, argv, &port, &maxPending);
+
+    setupSocket(&listenfd, port);
+
+    acceptConnections(listenfd);
+
+    return 0;
+}
+
+/*
+ * Prints an error message and exits the program.
+ */
+void error(const char *msg) {
+    perror(msg);
+    exit(1);
+}
+
+/*
+ * Parses and sets the command line arguments.
+ */
+void parseCommandLineArgs(int argc, char **argv, int *port, int *maxPending) {
+    int option_char;
+    const char *usage =
+        "usage:\n"
+        "  echoserver [options]\n"
+        "options:\n"
+        "  -h                  Show this help message\n"
+        "  -n                  Maximum pending connections\n"
+        "  -p                  Port (Default: 8080)\n";
+
+    struct option gLongOptions[] = {
+        {"port", required_argument, NULL, 'p'},
+        {"maxnpending", required_argument, NULL, 'n'},
+        {"help", no_argument, NULL, 'h'},
+        {NULL, 0, NULL, 0}
+    };
+
     while ((option_char = getopt_long(argc, argv, "p:n:h", gLongOptions, NULL)) != -1) {
         switch (option_char) {
-            case 'p': // listen-port
-                portno = atoi(optarg);
+            case 'p':
+                *port = atoi(optarg);
                 break;
-            case 'n': // server
-                maxnpending = atoi(optarg);
+            case 'n':
+                *maxPending = atoi(optarg);
                 break;
-            case 'h': // help
-                fprintf(stdout, "%s", USAGE);
+            case 'h':
+                fprintf(stdout, "%s", usage);
                 exit(0);
-                break;
             default:
-                fprintf(stderr, "%s", USAGE);
+                fprintf(stderr, "%s", usage);
                 exit(1);
         }
     }
 
-    if ((portno < 1025) || (portno > 65535)) {
-        fprintf(stderr, "%s @ %d: invalid port number (%d)\n", __FILE__, __LINE__, portno);
+    if (*port < 1025 || *port > 65535) {
+        fprintf(stderr, "Invalid port number: %d\n", *port);
         exit(1);
     }
 
-    if (maxnpending < 1) {
-        fprintf(stderr, "%s @ %d: invalid pending count (%d)\n", __FILE__, __LINE__, maxnpending);
+    if (*maxPending < 1) {
+        fprintf(stderr, "Invalid pending count: %d\n", *maxPending);
         exit(1);
     }
+}
 
-    /* Socket Code Here */
+/*
+ * Sets up the listening socket.
+ */
+void setupSocket(int *listenfd, int port) {
+    int optval = 1;
+    struct sockaddr_in serveraddr;
 
-    /* socket: create a socket */
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenfd < 0) 
+    *listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (*listenfd < 0)
         error("ERROR opening socket");
 
-    /* setsockopt: Handy debugging trick that lets 
-    * us rerun the server immediately after we kill it; 
-    * otherwise we have to wait about 20 secs. 
-    * Eliminates "ERROR on binding: Address already in use" error. 
-    */
-    optval = 1;
-    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, 
-            (const void *)&optval , sizeof(int));
+    setsockopt(*listenfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
 
-    /* build the server's internet address */
-    bzero((char *) &serveraddr, sizeof(serveraddr));
-    serveraddr.sin_family = AF_INET; /* we are using the Internet */
-    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); /* accept reqs to any IP addr */
-    serveraddr.sin_port = htons((unsigned short)portno); /* port to listen on */
+    bzero((char *)&serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons((unsigned short)port);
 
-    /* bind: associate the listening socket with a port */
-    if (bind(listenfd, (struct sockaddr *) &serveraddr, 
-        sizeof(serveraddr)) < 0) 
+    if (bind(*listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) < 0)
         error("ERROR on binding");
 
-    /* listen: make it a listening socket ready to accept connection requests */
-    if (listen(listenfd, 5) < 0) /* allow 5 requests to queue up */ 
+    if (listen(*listenfd, 5) < 0)
         error("ERROR on listen");
+}
 
-    /* main loop: wait for a connection request, echo input line, 
-        then close connection. */
-    clientlen = sizeof(clientaddr);
+/*
+ * Accepts incoming connections and handles each connection individually.
+ */
+void acceptConnections(int listenfd) {
+    struct sockaddr_in clientaddr;
+    socklen_t clientlen = sizeof(clientaddr);
+    struct hostent *hostp;
+    char buf[BUFSIZE];
+    int connfd;
+
     while (1) {
+        connfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
+        if (connfd < 0)
+            error("ERROR on accept");
 
-        /* accept: wait for a connection request */
-        connfd = accept(listenfd, (struct sockaddr *) &clientaddr, &clientlen);
-        if (connfd < 0) 
-        error("ERROR on accept");
-        
-        /* gethostbyaddr: determine who sent the message */
-        hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, 
-                sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+        hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
         if (hostp == NULL)
-        error("ERROR on gethostbyaddr");
-        hostaddrp = inet_ntoa(clientaddr.sin_addr);
-        if (hostaddrp == NULL)
-        error("ERROR on inet_ntoa\n");
-        printf("server established connection with %s (%s)\n", 
-        hostp->h_name, hostaddrp);
-        
+            error("ERROR on gethostbyaddr");
 
-        /* read: read input string from the client */
+        const char *hostaddrp = inet_ntoa(clientaddr.sin_addr);
+        if (hostaddrp == NULL)
+            error("ERROR on inet_ntoa");
+
+        printf("Server established connection with %s (%s)\n", hostp->h_name, hostaddrp);
+
         bzero(buf, BUFSIZE);
-        n = read(connfd, buf, BUFSIZE);
-        if (n < 0) 
-        error("ERROR reading from socket");
-        printf("server received %d bytes: %s\n", n, buf);
-        
-        /* write: echo the input string back to the client */
+        int n = read(connfd, buf, BUFSIZE);
+        if (n < 0)
+            error("ERROR reading from socket");
+        printf("Server received %d bytes: %s\n", n, buf);
+
         n = write(connfd, buf, strlen(buf));
-        if (n < 0) 
-        error("ERROR writing to socket");
+        if (n < 0)
+            error("ERROR writing to socket");
 
         close(connfd);
     }
-    
-    return 0;
 }
