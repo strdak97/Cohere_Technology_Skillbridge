@@ -33,20 +33,16 @@ static struct option gLongOptions[] = {
  * error - wrapper for perror
  */
 void error(char *msg) {
-    fprintf(stderr, "%s\n", msg);
+    perror(msg);
     exit(0);
 }
 
 /* Main ========================================================= */
 int main(int argc, char **argv) {
-    int sockfd, n;
-    struct sockaddr_in serveraddr;
-    struct hostent *server;
-    char buf[BUFSIZE];
-    int option_char;
+    int option_char = 0;
     char *hostname = "localhost";
     unsigned short portno = 8080;
-    char *message = "test";
+    char *message = "Hello World!";
 
     // Parse and set command line arguments
     while ((option_char = getopt_long(argc, argv, "s:p:m:h", gLongOptions, NULL)) != -1) {
@@ -57,7 +53,7 @@ int main(int argc, char **argv) {
             case 'p': // listen-port
                 portno = atoi(optarg);
                 break;
-            case 'm': // message
+            case 'm': // server
                 message = optarg;
                 break;
             case 'h': // help
@@ -85,44 +81,46 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    /* socket Code Here */
-
     /* socket: create the socket */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) 
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
         error("ERROR opening socket");
+    } 
 
     /* gethostbyname: get the server's DNS entry */
-    server = gethostbyname(hostname);
+    struct hostent *server = gethostbyname(hostname);
     if (server == NULL) {
         fprintf(stderr,"ERROR, no such host as %s\n", hostname);
         exit(0);
     }
 
     /* build the server's Internet address */
+    struct sockaddr_in serveraddr;
     bzero((char *) &serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
-
     bcopy((char *)server->h_addr, 
-    (char *)&serveraddr.sin_addr.s_addr, server->h_length);
-
+	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
     serveraddr.sin_port = htons(portno);
 
     /* connect: create a connection with the server */
-    if (connect(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) 
-        error("ERROR connecting");
+    if (connect(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+        error("ERROR connecting to server");
+    }
 
     /* write: send the message line to the server */
-    n = write(sockfd, message, strlen(message));
-    if (n < 0) 
+    int bytesSent = write(sockfd, message, strlen(message));
+    if (bytesSent < 0) {
         error("ERROR writing to socket");
+    } 
 
     /* read: print the server's reply */
-    bzero(buf, BUFSIZE);
-    n = read(sockfd, buf, BUFSIZE);
-    if (n < 0) 
+    char buf[BUFSIZE]; 
+    int bytesRead = read(sockfd, buf, BUFSIZE);
+    if (bytesRead < 0) {
         error("ERROR reading from socket");
-    printf("%s", buf);
+    }
+    printf("%.15s", buf);
     close(sockfd);
     return 0;
+
 }
