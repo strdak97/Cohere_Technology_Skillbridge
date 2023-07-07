@@ -9,10 +9,13 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <errno.h>
+
 #include "gfclient.h"
 
-#define BUFSIZE 65536
+#define BUFSIZE 4096
 
+/* represents a request object 
+   for the client library */
 struct gfcrequest_t {
     void *headerarg;
     void (*headerfunc)(void *, size_t, void *);
@@ -26,10 +29,13 @@ struct gfcrequest_t {
     gfstatus_t status;
 };
 
+/* deallocates memory after client is 
+   finished with a request object */
 void gfc_cleanup(gfcrequest_t *gfr){
     free(gfr);
 }
 
+/* creates and initializes a new request object */
 gfcrequest_t *gfc_create() {
     gfcrequest_t *gfr = (gfcrequest_t*)malloc(sizeof(gfcrequest_t));
     gfr->headerarg = NULL;
@@ -45,6 +51,7 @@ gfcrequest_t *gfc_create() {
     return gfr;
 }
 
+/* getters */
 size_t gfc_get_bytesreceived(gfcrequest_t *gfr) {
     return gfr->bytesreceived;
 }
@@ -57,79 +64,80 @@ gfstatus_t gfc_get_status(gfcrequest_t *gfr) {
     return gfr->status;
 }
 
+/* sets up any global data structured 
+   needed for the library */
 void gfc_global_init() {
 
 }
 
+/* cleans up any global data structures 
+   needed for the library */
 void gfc_global_cleanup() {
 
 }
 
-/*
- * Performs the transfer as described in the options.  Returns a value of 0
- * if the communication is successful, including the case where the server
- * returns a responseHeader with a FILE_NOT_FOUND or ERROR responseHeader.  If the 
- * communication is not successful (e.g. the connection is closed before
- * transfer is complete or an invalid header is returned), then a negative 
- * integer will be returned.
- */
-
+/* performs the actual GETFILE request by establishing a 
+   connection to the server, sending the request, 
+   receiving the response, and handling the received data 
+   according to the provided callbacks. */
 int gfc_perform(gfcrequest_t *gfr) {
-    //create client / server connection
+    /* socket: create the socket */
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        printf("[+] Error creating socket [-] ");
+        printf("ERROR creating socket\n");
     }
     
-
+    /* gethostbyname: get the server's DNS entry */
     struct hostent *server = gethostbyname(gfr->server);
     if (server == NULL) {
-        printf("[+] Error resolving hostname [-] ");
+        fprintf(stderr,"ERROR, no such host as %s\n", gfr->server);
+        exit(0);
     }
 
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    server_addr.sin_port = htons(gfr->port);
+    /* build the server's Internet address */
+    struct sockaddr_in serveraddr;
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, 
+	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
+    serveraddr.sin_port = htons(gfr->port);
 
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        printf("[+] Error connecting to server [-] ");
+    /* connect: create a connection with the server */
+    if (connect(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+        printf("ERROR connecting to server\n");
     }
 
-    //build and make request to server
+    //build GETFILE request
     char request[BUFSIZE];
-
     sprintf(request, "GETFILE GET %s\r\n\r\n", gfr->path);
-    printf("[+] Client REQUEST: %s [-] ", request);
+    printf("Client REQUEST: %s \n", request);
 
-    size_t bytesSent;
-    bytesSent = write(sockfd, request, strlen(request));
+    //send GETFILE request
+    ssize_t bytesSent = write(sockfd, request, strlen(request));
     if(bytesSent < 0) {
         int errnum = errno;
-        printf("[+] Error sending data: %s [-] ", strerror( errnum ));
+        printf("Error sending data: %s \n", strerror( errnum ));
     }
 
-    //receive response from server
+    //receive GETFILE response from server
     char response[50];
-    size_t totalBytesRead = 0;
+    ssize_t totalBytesRead = 0;
+    ssize_t bytesRead = 0;
     int headerEnd = 0;
 
+    //parse server response
     while (totalBytesRead < 49 && !headerEnd) {
-        // Read one byte from the server
-        ssize_t bytesRead = read(sockfd, response + totalBytesRead, 1);
+        bytesRead = read(sockfd, response + totalBytesRead, 1);
         
         if (bytesRead < 0) {
-            // Error occurred while reading
-            perror("Error reading from socket");
+            printf("Error reading from socket\n");
             break;
-        } else if (bytesRead == 0) {
-            // Connection closed by the server
+        } 
+        else if (bytesRead == 0) {
             printf("Connection closed by the server\n");
             break;
         }
         
-        // Update the total bytes read
         totalBytesRead++;
         
         // Check if the header end delimiter (\r\n\r\n) is present in the response
@@ -142,11 +150,11 @@ int gfc_perform(gfcrequest_t *gfr) {
         }
     }
 
-    response[totalBytesRead] = '\0'; // Null-terminate the response string
+    response[totalBytesRead] = '\0'; 
 
-    printf("[+] Server RESPONSE: %s ", response);
-    char *filePtr = NULL; 
+    printf("Server RESPONSE: %s \n", response);
 
+    //take parsed response and set status appropriately 
     if(strstr(response, "ERROR") != NULL) {
         gfr->status = GF_ERROR;
     }
@@ -154,7 +162,7 @@ int gfc_perform(gfcrequest_t *gfr) {
         gfr->status = GF_FILE_NOT_FOUND;
     }
     else if(strstr(response, "GETFILE") != NULL && strstr(response + 8, "OK") != NULL) {
-        filePtr = response + 11;
+        char *filePtr = response + 11;
         gfr->filelen = atoi(filePtr);
         gfr->status = GF_OK;
     }
@@ -163,21 +171,22 @@ int gfc_perform(gfcrequest_t *gfr) {
         return -1;
     }
 
-    // Receive response from server
+    //if server response is OK, continue receving data from server
     char responseData[gfr->filelen];
+    bytesRead = 0;
 
-    // Read until the expected file length is reached
     while (gfr->bytesreceived < gfr->filelen) {
-        size_t bytesRead = read(sockfd, responseData, BUFSIZE);
+        bytesRead = read(sockfd, responseData, BUFSIZE);
+
         if (bytesRead < 0) {
             printf("Error reading bytes\n");
-        } else if (bytesRead == 0) {
+        } 
+        else if (bytesRead == 0) {
             printf("Connection error\n");
             gfr->status = GF_ERROR;
             return -1;
         }
 
-        // Call the writefunc with the received data
         gfr->writefunc(responseData, bytesRead, gfr->writearg);
 
         gfr->bytesreceived += bytesRead;
@@ -187,6 +196,7 @@ int gfc_perform(gfcrequest_t *gfr) {
     return 0;
 }
 
+/* setters */
 void gfc_set_headerarg(gfcrequest_t *gfr, void *headerarg){
     gfr->headerarg = headerarg;
 }
@@ -215,6 +225,7 @@ void gfc_set_writefunc(gfcrequest_t *gfr, void (*writefunc)(void*, size_t, void 
     gfr->writefunc = writefunc;
 }
 
+/* sets status as needed */
 char* gfc_strstatus(gfstatus_t status) {
     switch (status) {
         case GF_OK:

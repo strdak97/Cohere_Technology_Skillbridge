@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
 #include "gfserver.h"
 
 #define BUFSIZE 4096
@@ -17,6 +18,8 @@ struct gfserver_t {
     int maxConnections;
     ssize_t (*handler)(gfcontext_t *, char *, void*);
     void* handlerArg;
+    ssize_t totalBytesSent;
+    ssize_t headerBytesSent;
 };
 
 //struct used to store information regarding the context of the client
@@ -39,20 +42,16 @@ void gfs_abort(gfcontext_t *clientContext) {
     free(clientContext);
 }
 
-ssize_t totalBytesSentSend = 0;
 //sends data from the server to the client over the client socket connection.
 ssize_t gfs_send(gfcontext_t *clientContext, void *data, size_t len) {
-    ssize_t bytesSent;
-    bytesSent = write(clientContext->clientSocket, data, len);
+    ssize_t bytesSent = write(clientContext->clientSocket, data, len);
         if (bytesSent < 0) {
             int errnum = errno;
-            printf("[+] Error sending data: %s [-] ", strerror( errnum ));
+            printf("Error sending data: %s\n", strerror( errnum ));
         }
-    totalBytesSentSend += bytesSent;
     return bytesSent;
 }
 
-ssize_t totalBytesSentHeader = 0;
 // Sends the header to the client containing the GETFILE protocol
 ssize_t gfs_sendheader(gfcontext_t *clientContext, gfstatus_t status, size_t file_len) {
     char header[BUFSIZE];
@@ -73,30 +72,30 @@ ssize_t gfs_sendheader(gfcontext_t *clientContext, gfstatus_t status, size_t fil
     }
 
     if (header_len >= BUFSIZE || header_len < 0) {
-        printf("[+] Error sending header [-] ");
+        printf("Error sending header\n");
     }
-    printf("[+] Server RESPONSE: %s [-]", header);
+    printf("Server RESPONSE: %s\n", header);
 
     bytesSent = write(clientContext->clientSocket, header, header_len);
-    totalBytesSentHeader += bytesSent;
 
     if (bytesSent < 0) {
         int errnum = errno;
-        printf("[+] Error sending header: %s (errno: %d) [-] ", strerror(errnum), errnum);
+        printf("Error sending header: %s (errno: %d)\n", strerror(errnum), errnum);
     }
 
     return bytesSent;
 }
-
+/*  parses and checks the validity of the request 
+    header received from the client */
 char* checkHeader(char* request) {
-    char* filePtr = NULL;
+    char *filePtr = NULL;
     if (strstr(request, "GETFILE") != NULL &&
         strstr(request + 7, "GET") != NULL &&
         strstr(request, "\r\n\r\n") != NULL &&
         strstr(request + 11, " /") != NULL) { 
+
         filePtr = strstr(request, "\r\n\r\n");
         *filePtr = '\0';
-        // Extract the file path
         filePtr = strstr(request, " /");
         if (filePtr != NULL) {
             filePtr += 1; 
@@ -113,7 +112,7 @@ void gfserver_serve(gfserver_t *gfs) {
     /* Create the listening socket */
     int listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocket < 0) {
-        printf("[+] Error creating socket [-] ");
+        printf("Error creating socket\n");
     }
 
     /* Build the server's internet address */
@@ -125,23 +124,25 @@ void gfserver_serve(gfserver_t *gfs) {
 
     /* Bind the listening socket */
     if (bind(listenSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-        printf("[+] Error binding socket [-] ");
+        printf("Error binding socket\n");
         close(listenSocket);
     }
 
     /* Allow the socket to listen for connection requests */
     if (listen(listenSocket, gfs->maxConnections) < 0) {
-        printf("[+] Error listening [-] ");
+        printf("Error listening\n");
         close(listenSocket);
     }
 
+    /* main loop: wait for a connection request, send requested file, 
+       then wait for the next connection. */
+    struct sockaddr_in clientAddr;
+    socklen_t clientLength = sizeof(clientAddr);
     while (1) {
         /* Accept a new client connection */
-        struct sockaddr_in clientAddr;
-        socklen_t clientLength = sizeof(clientAddr);
         int commSocket = accept(listenSocket, (struct sockaddr *) &clientAddr, &clientLength);
         if (commSocket < 0) {
-            printf("[+] Error accepting socket [-] ");
+            printf("Error accepting socket\n");
             close(listenSocket);
             close(commSocket);
             free(gfs);
@@ -153,10 +154,10 @@ void gfserver_serve(gfserver_t *gfs) {
         clientContext->clientSocket = commSocket;
 
         /* Read and process the client's request */
-        char request[MAX_REQUEST_LEN];
+        char request[BUFSIZE];
         ssize_t bytesRead = read(clientContext->clientSocket, request, sizeof(request) - 1);
         if (bytesRead < 0) {
-            printf("[+] Error receiving client request [-] ");
+            printf("Error receiving client request\n");
             close(listenSocket);
             gfs_abort(clientContext);
             free(gfs);
@@ -165,15 +166,12 @@ void gfserver_serve(gfserver_t *gfs) {
         /* Null-terminate the received data */
         request[bytesRead] = '\0';
 
-        printf("[+] Client's request: %s [-]\n", request);
+        printf("Client's request: %s\n", request);
 
         char* filePtr = checkHeader(request);
 
-        printf("[+] Filepath: %s [-] ", filePtr);
+        printf("Filepath: %s\n", filePtr);
         gfs->handler(clientContext, filePtr, gfs->handlerArg);
-
-        printf("[+] Total bytes header sent: %ld [-] ", totalBytesSentHeader);
-        printf("[+] Total bytes send sent: %ld [-] ", totalBytesSentSend);
 
         /* Cleanup the client context and close the connection */
         gfs_abort(clientContext);
@@ -183,6 +181,7 @@ void gfserver_serve(gfserver_t *gfs) {
     close(listenSocket);
 }
 
+/* setters */
 void gfserver_set_handlerarg(gfserver_t *gfs, void* arg) {
     gfs->handlerArg = arg;
 }
