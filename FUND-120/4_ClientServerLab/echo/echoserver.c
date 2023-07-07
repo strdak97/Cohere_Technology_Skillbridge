@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
     /* socket: create a socket */
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd < 0) {
-        error("ERROR opening socket");
+        error("ERROR opening socket\n");
     }
 
     /* setsockopt: Handy debugging trick that lets 
@@ -94,12 +94,12 @@ int main(int argc, char **argv) {
     /* bind: associate the listening socket with a port */
     if (bind(listenfd, (struct sockaddr *) &serveraddr, 
         sizeof(serveraddr)) < 0) {
-            error("ERROR on binding");
+            error("ERROR on binding\n");
     }
 
     /* listen: make it a listening socket ready to accept connection requests */
     if (listen(listenfd, 5) < 0) {  /* allow 5 requests to queue up */ 
-        error("ERROR on listen");
+        error("ERROR on listen\n");
     }
     
     /* main loop: wait for a connection request, echo input line, 
@@ -110,14 +110,14 @@ int main(int argc, char **argv) {
         /* accept: wait for a connection request */
         int connfd = accept(listenfd, (struct sockaddr *) &clientaddr, &clientlen);
         if (connfd < 0) {
-            error("ERROR on accept");
+            error("ERROR on accept\n");
         } 
 
         /* gethostbyaddr: determine who sent the message */
         struct hostent *hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, 
             sizeof(clientaddr.sin_addr.s_addr), AF_INET);
         if (hostp == NULL) {
-            error("ERROR on gethostbyaddr");
+            error("ERROR on gethostbyaddr\n");
         }
 
         char *hostaddrp = inet_ntoa(clientaddr.sin_addr);
@@ -132,14 +132,14 @@ int main(int argc, char **argv) {
         char buf[BUFSIZE];
         int bytesRead = read(connfd, buf, BUFSIZE);
         if (bytesRead < 0) {
-            error("ERROR reading from socket");
+            error("ERROR reading from socket\n");
         }
         printf("Server received %d bytes: %s", bytesRead, buf);
 
         /* write: echo the input string back to the client */
         int bytesSent = write(connfd, buf, strlen(buf));
         if (bytesSent < 0) {
-            error("ERROR writing to socket");
+            error("ERROR writing to socket\n");
         }
 
         close(connfd);

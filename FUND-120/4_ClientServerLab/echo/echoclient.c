@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     /* socket: create the socket */
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        error("ERROR opening socket");
+        error("ERROR opening socket\n");
     } 
 
     /* gethostbyname: get the server's DNS entry */
@@ -104,23 +104,22 @@ int main(int argc, char **argv) {
 
     /* connect: create a connection with the server */
     if (connect(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
-        error("ERROR connecting to server");
+        error("ERROR connecting to server\n");
     }
 
     /* write: send the message line to the server */
     int bytesSent = write(sockfd, message, strlen(message));
     if (bytesSent < 0) {
-        error("ERROR writing to socket");
+        error("ERROR writing to socket\n");
     } 
 
     /* read: print the server's reply */
     char buf[BUFSIZE]; 
     int bytesRead = read(sockfd, buf, BUFSIZE);
     if (bytesRead < 0) {
-        error("ERROR reading from socket");
+        error("ERROR reading from socket\n");
     }
     printf("%.15s", buf);
     close(sockfd);
     return 0;
-
 }
