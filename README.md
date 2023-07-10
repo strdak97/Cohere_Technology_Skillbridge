@@ -1,6 +1,14 @@
 # Cohere Technology Skillbridge
 
-**FOUND-110**
+Cohere Academy's SkillBridge program aims to train transitioning Service Members in the skills required for Computer Network Operator (CNO) positions. Unlike traditional training programs, Cohere Academy's approach involved curated lessons and projects organized into training modules that provide the specific training needed to be a sucessful CNO developer. Throughout the program I recieved mentorship from seasoned Cohere Technology Engineers and CNO professionals to maximize my learning experience. 
+
+The program emphasizes learning by doing. While reading and understanding concepts is vital and important, applying these concepts in practical projects helped solidify my understanding and fostered true comprehension of the material. Creative problem-solving is valued over rote memorization, and the program aimed to build knowledge through "healthy" struggle. Throughout the program, mentors emphasized that computers are powerful machines that operate on abstractions of real-world concepts. Understanding these abstractions and their boundaries was crucial for identifying and exploiting the vulnerabilities within them.
+
+Throughout the program I engaged with other Cohere Academy interns and helped foster and build a community of like-minded CNO developers. Utilizing things such as project collaboration, CTF's (Capture the Flag) competitions, virtual meetups, or simply asking for advice in Discord.
+
+This program proivded me with not only the skills necessary to work as CNO developer but also provided the foundational tools and resources needed to be sucessful in the cyber-security world. 
+
+# FOUND-110
 
 Discusses and reviews the fundamentals of software development and exploitation. Utilizes reading materials such as the Art of Exploitation along with Labs and CTF challenges. 
 
@@ -18,7 +26,7 @@ Discusses and reviews the fundamentals of software development and exploitation.
   * Linux bind shell
   * Linux reverse shell
 
-**FUND-120**
+# FUND-120
 
 Builds on the concepts learned in FOUND-110 utilizing Carnegie Mellon University's Introduction to Computer Systems [course](https://scs.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22b96d90ae-9871-4fae-91e2-b1627b43e25e%22&view=0&maxResults=50). This unit has five labs that must be completed:
 
@@ -54,5 +62,5 @@ Builds on the concepts learned in FOUND-110 utilizing Carnegie Mellon University
     + The third phase of the lab has student practice creating library functions by having them create a custom library called GETFILE to add to their transfer server. 
     + The fourth and final phase of the lab has student take everything learned up until this point and modify the GETFILE program to become utilize multi-threading capabilities along with mutex locks and conditionals.
 
-**TRACK-201**
+# TRACK-201
   
