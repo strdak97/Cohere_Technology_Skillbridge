@@ -46,12 +46,13 @@ echo/
   └── readme.md
 ```
 The echo/ directory contains the following files:
-
-    echoclient.c: The client program that sends a message to the server.
-    echoserver.c: The server program that echoes the received message.
-    readme.md: A template file for taking project notes and documenting the approach.
+```
+echoclient.c: The client program that sends a message to the server.
+echoserver.c: The server program that echoes the received message.
+readme.md: A template file for taking project notes and documenting the approach.
+```
 # Resources
-To complete this project, you may find the following resources helpful:
+This project utilized the following resources in order to complete it:
   
 * Sockets API documentation: [C Socket Programming](https://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/socket.html)
 * Beej's Guide to Network Programming: [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/html/)
