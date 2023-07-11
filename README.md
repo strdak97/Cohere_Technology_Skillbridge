@@ -63,4 +63,9 @@ Builds on the concepts learned in FOUND-110 utilizing Carnegie Mellon University
     + The fourth and final phase of the lab has student take everything learned up until this point and modify the GETFILE program to become utilize multi-threading capabilities along with mutex locks and conditionals.
 
 # TRACK-201
-  
+
+This module has students write a "Hello World" application in the C programming language, the catch is that the student needs to have an empty import table. This is because the student will be writing their own importer and not use stdin.h or Windows system calls for this assignment. 
+This is a research intensive project in which the student is given a baseline information on what to do and where to look, but overall the student is expected to find the resources necessary to complete the assignment on their own. 
+
+Utilizing WinDBG and the resources the student finds across the internet, the student is expected to write their own importer in the C programming language and have the program use printf() to print out the words "Hello World" on the command line. 
+The ultimate goal of this module is to have students learn and understand more about Windows processes and how they work, obtain a better understanding of how to manipulate executable files, and develop good research habits on topics they may not fully understand.
